@@ -475,16 +475,62 @@ await test(34, "POST /restack/{postId} — cross-post endpoint", async () => {
   assert(typeof r.status === "number", "no response");
 });
 
+await test(35, "GET /reader/feed/profile/{id} — profile feed", async () => {
+  const r = await api(P, "GET", `reader/feed/profile/${ownId}`);
+  assertOk(r, "profile feed");
+  const items = r.json.items || [];
+  assert(Array.isArray(items), "expected items array");
+});
+
+await test(36, "GET {pub}/reader/feed/profile/{id}?types=note — profile notes", async () => {
+  const r = await api(B, "GET", `reader/feed/profile/${ownId}?types=note`);
+  assertOk(r, "profile notes");
+  const items = r.json.items || [];
+  assert(Array.isArray(items), "expected items array");
+});
+
+await test(37, "DELETE /post/{id}/reaction — explicit unlike", async () => {
+  if (!targetPostId) {
+    const list = await api(P, "GET", `profile/posts?profile_user_id=${ownId}&limit=1`);
+    targetPostId = list.json?.posts?.[0]?.id;
+  }
+  if (!targetPostId) throw Error("no post id");
+  await api(P, "POST", `post/${targetPostId}/reaction`, { reaction: "❤" });
+  const r = await fetch(`${P}/post/${targetPostId}/reaction`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", Cookie: COOKIE },
+    body: "{}",
+  });
+  const text = await r.text();
+  let json = null;
+  try { json = JSON.parse(text); } catch {}
+  assert(r.ok, `expected 200, got ${r.status}: ${text.slice(0, 200)}`);
+});
+
+await test(38, "DELETE /comment/{id}/reaction — explicit unlike note", async () => {
+  const n = await api(P, "POST", "comment/feed/", {
+    bodyJson: { type: "doc", attrs: { schemaVersion: "v1" }, content: [{ type: "paragraph", content: [{ type: "text", text: "DELETE reaction test" }] }] },
+    tabId: "for-you", surface: "feed", replyMinimumRole: "everyone",
+  });
+  if (!n.ok || !n.json?.id) throw Error("could not create test note");
+  const tmpId = n.json.id;
+  createdNotes.push(tmpId);
+  // Like first
+  await api(P, "POST", `comment/${tmpId}/reaction`, { reaction: "❤" });
+  const r = await api(P, "DELETE", `comment/${tmpId}/reaction`, { method: "DELETE", body: JSON.stringify({ tabId: "for-you" }) });
+  assert(r.ok, `expected 200, got ${r.status}`);
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 // ERROR CASES
 // ─────────────────────────────────────────────────────────────────────────
 
-await test(35, "Invalid reaction emoji → 400", async () => {
+await test(39, "Invalid reaction emoji → 400", async () => {
   const r = await api(P, "POST", "post/1/reaction", { reaction: "🔥" });
   assert(r.status === 400, `expected 400, got ${r.status}`);
 });
 
-await test(36, "Unsupported note body node (image2) → 400 or 500", async () => {
+await test(40, "Unsupported note body node (image2) → 400 or 500", async () => {
   const r = await api(P, "POST", "comment/feed/", {
     bodyJson: { type: "doc", attrs: { schemaVersion: "v1" }, content: [{ type: "image2", attrs: { src: "https://example.com/img.png", alt: "" } }] },
     tabId: "for-you", surface: "feed", replyMinimumRole: "everyone",
@@ -493,7 +539,7 @@ await test(36, "Unsupported note body node (image2) → 400 or 500", async () =>
   assert(r.status >= 400 && r.status < 600, `expected error status, got ${r.status}`);
 });
 
-await test(37, "Attachment UUID single-use → 400 on reuse", async () => {
+await test(41, "Attachment UUID single-use → 400 on reuse", async () => {
   const b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
   const img = await apiForm(`${B}/image`, { image: `data:image/png;base64,${b64}` });
   if (!img.ok) throw Error("image upload failed");

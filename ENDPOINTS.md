@@ -20,7 +20,8 @@
 | GET | `/user/{handle}/public_profile` | ❌ No | Public profile by handle |
 | GET | `/profile/posts?profile_user_id={id}&limit={n}` | ❌ No | Published posts for a user (all their publications). Paginated. |
 | GET | `/posts/by-id/{id}` | ❌ No | Single published post with full `body_html` |
-| GET | `/reader/feed` | ❌ No | Notes feed, paginated |
+| GET | `/reader/feed` | ❌ No | Global notes feed, paginated |
+| GET | `/reader/feed/profile/{profileId}` | ❌ No | Feed items for a specific user profile |
 | GET | `/reader/comment/{id}` | ❌ No | Read a single note/comment by ID |
 | GET | `/feed/following` | ✅ Yes | Following feed (posts from publications you follow) |
 | GET | `/handle/options` | ✅ Yes | Available handles/slugs for the authenticated user |
@@ -31,7 +32,9 @@
 | POST | `/comment/attachment/` | ✅ Yes | Resolve a URL to an attachment UUID. `type: "link"` for restacking, `type: "image"` for image attachments in notes. |
 | POST | `/restack/{postId}` | ✅ Yes | Cross-post a post to another publication |
 | POST | `/post/{postId}/reaction` | ✅ Yes | Like/unlike a post. `{reaction: "❤"}`. Only ❤ accepted. Toggles. |
+| DELETE | `/post/{id}/reaction` | ✅ Yes | Explicit unlike a post. Body: `{}`. |
 | POST | `/comment/{id}/reaction` | ✅ Yes | Like/unlike a note/comment. |
+| DELETE | `/comment/{id}/reaction` | ✅ Yes | Explicit unlike a note/comment. Body: `{tabId: "for-you"}`. |
 
 ---
 
@@ -50,6 +53,7 @@
 | POST | `/drafts/{id}/publish` | ✅ Yes | Publish a draft |
 | POST | `/image` | ✅ Yes | Upload image (form-urlencoded, Base64 data URI) |
 | GET | `/notes` | ✅ Yes | Notes feed for the publication, paginated |
+| GET | `/reader/feed/profile/{profileId}?types=note` | ✅ Yes | Notes for a specific user profile within this publication (cursor-paginated) |
 | POST | `/post/{postId}/comment` | ✅ Yes | Create a comment on a post. Optional `ancestorPath` for replies. |
 | GET | `/post/{postId}/comments` | ✅ Yes | List all comments on a post |
 | DELETE | `/comment/{id}` | ✅ Yes | Delete a comment on a post (publication scope only) |

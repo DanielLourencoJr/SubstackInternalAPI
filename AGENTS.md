@@ -14,7 +14,7 @@ Reverse-engineered documentation of Substack's internal HTTP API. No code contri
 | `ENDPOINTS.md` | Quick-reference table (24 endpoints) |
 | `CONTENT_FORMATS.md` | Tiptap (drafts) vs ProseMirror (notes) |
 | `LIMITS.md` | Rate limits (~60 req/min), size limits (~976 KB draft body) |
-| `tests/test_substack_api.mjs` | **Canary** — 37 tests, all endpoints covered |
+| `tests/test_substack_api.mjs` | **Canary** — 41 tests, all endpoints covered |
 | `substack-api-repo/` | Cloned TS lib (reference only, gitignored) |
 | `substack-gateway-oss/` | Cloned Python gateway (reference only, gitignored) |
 | `obsidian-content-publisher/` | Cloned plugin (reference only, gitignored) |

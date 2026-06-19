@@ -83,6 +83,34 @@ User settings as a flat key-value store.
 
 ## Feed & Content
 
+### GET `{platform}/reader/feed/profile/{profileId}`
+
+Feed items for a specific user profile. Returns posts, notes, and other content by that user. No auth required (platform scope).
+
+Query params: `cursor` (for cursor-based pagination)
+
+```json
+{
+  "items": [
+    { "type": "post", ... },
+    { "type": "comment", ... }
+  ],
+  "originalCursorTimestamp": "2026-06-19T17:46:56.163Z",
+  "nextCursor": "..."
+}
+```
+
+### GET `{pub}/reader/feed/profile/{profileId}?types=note`
+
+Notes for a specific user profile within a publication. Publication scope, auth required. Cursor-paginated.
+
+```json
+{
+  "items": [...],
+  "nextCursor": "..."
+}
+```
+
 ### GET `{platform}/profile/posts?profile_user_id={id}&limit={n}`
 
 Published posts for a user across all their publications. Paginated with `offset`.
@@ -448,9 +476,21 @@ Body: `{ "reaction": "❤" }`
 
 Only `❤` is accepted. Other emoji (`🔥`, `👍`, `👎`) return `400` with a validation error.
 
+### DELETE `{platform}/post/{id}/reaction`
+
+Explicitly remove a reaction from a post (unlike). Toggling via `POST` already handles both like/unlike, but this provides an explicit removal path.
+
+Body: `{}`
+
 ### POST `{platform}/comment/{id}/reaction`
 
 Like or unlike a note/comment. Same body and toggle behaviour as post reactions.
+
+### DELETE `{platform}/comment/{id}/reaction`
+
+Explicitly remove a reaction from a note/comment.
+
+Body: `{ "tabId": "for-you" }`
 
 ---
 
