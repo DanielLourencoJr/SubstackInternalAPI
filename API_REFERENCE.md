@@ -16,7 +16,7 @@
 
 ### GET `{platform}/user/{handle}/public_profile`
 
-Public profile by handle. No auth required.
+Public profile by handle. No auth required. This is the only endpoint that provides subscriber count data.
 
 ```json
 {
@@ -33,9 +33,33 @@ Public profile by handle. No auth required.
       "name": "The API Times",
       "subdomain": "theapitimes"
     }
-  ]
+  ],
+  "rough_num_free_subscribers_int": 1,
+  "rough_num_free_subscribers": "Tens",
+  "subscriberCountString": "1 subscriber",
+  "subscriberCount": "1",
+  "subscriberCountNumber": 1,
+  "followerCount": 0,
+  "visibleSubscriptionsCount": 0,
+  "subscriptions": []
 }
 ```
+
+Subscriber count fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rough_num_free_subscribers_int` | int | Rough free subscriber count (bucketed: 1, ~10, ~100, ~1000, etc.) |
+| `rough_num_free_subscribers` | string | Human-readable bucket label: `"Tens"`, `"Hundreds"`, `"Thousands"`, etc. |
+| `subscriberCountNumber` | int | Exact free subscriber count |
+| `subscriberCountString` | string | Formatted string like `"1 subscriber"` |
+| `subscriberCount` | string | Same as `subscriberCountNumber` as string |
+| `followerCount` | int | Follower count (distinct from subscribers) |
+| `visibleSubscriptionsCount` | int | Number of publications this user subscribes to that are publicly visible |
+| `subscriptions` | array | List of publications the user subscribes to |
+| `primaryPublicationSubscriptionState` | string | `"author"`, `"subscriber"`, or `"none"` |
+
+No paid subscriber count is available through this or any other discovered endpoint.
 
 ### GET `{platform}/user/profile/self`
 
@@ -658,3 +682,25 @@ For attaching images to notes (renders as embedded image cards within the note):
 **Limitations**:
 - Images cannot be rendered inline in the note's body text (no `image2` in ProseMirror). They appear as attachment cards below the text.
 - The note `body_json` supports only text markdown (paragraphs, bold, italic, lists, links). See [CONTENT_FORMATS.md](CONTENT_FORMATS.md).
+
+---
+
+## Subscriber Data
+
+### Available
+
+| Source | Data | Endpoint |
+|--------|------|----------|
+| Public profile | Free subscriber count + rough bucket, follower count | `GET /user/{handle}/public_profile` |
+| Publication info | Boolean flags: `has_paid_subs`, `payments_state`, `founding_plan_enabled` | `GET {pub}/publication` |
+
+### Not Available (via public API)
+
+- **Paid subscriber count** — no endpoint exposes this. The `has_paid_subs` boolean is the only indicator.
+- **Subscriber analytics / stats** — no `dashboard/*`, `publication/stats`, `publication/analytics`, or `publication/subscribers` endpoint exists in any of the three cloned repos. All attempted patterns return Cloudflare blocks or "Not authorized".
+- **Subscriber lists** — `GET /user/{id}/subscriber-lists?lists=following` exists but returns *who the user follows*, not subscriber analytics. Returns Cloudflare 403 when accessed programmatically.
+- **Per-post subscriber stats** — individual posts in `GET /profile/posts` do not include subscriber counts or revenue data.
+
+### Why
+
+Substack's analytics dashboard (accessible at `substack.com/dashboard` in the browser) likely uses internal/admin-only endpoints not exposed through the public API used by these clients. The three cloned repos (TS library, Python gateway, Obsidian plugin) handle content creation/reading — not analytics.
