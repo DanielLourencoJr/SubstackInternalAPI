@@ -1,6 +1,8 @@
 # Substack Internal API Reference
 
 > Reverse-engineered from live testing against a test account. Covers the undocumented internal HTTP API used by the Substack web app.
+>
+> See [`AGENTS.md`](AGENTS.md) for repo conventions and testing workflow.
 
 ## Files
 
