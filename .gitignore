@@ -1,0 +1,12 @@
+# Ignore cloned repos
+substack-api-repo/
+substack-gateway-oss/
+obsidian-content-publisher/
+
+# Node
+node_modules/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
