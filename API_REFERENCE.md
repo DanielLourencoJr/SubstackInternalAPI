@@ -137,7 +137,7 @@ Notes for a specific user profile within a publication. Publication scope, auth 
 
 ### GET `{platform}/profile/posts?profile_user_id={id}&limit={n}`
 
-Published posts for a user across all their publications. Paginated with `offset`.
+Published posts for a user across all their publications. Cursor-based pagination (`?cursor=`). **`offset` is rejected (400)** — use `cursor` instead. Accepts `limit` to control page size.
 
 ```json
 {
@@ -161,7 +161,7 @@ Published posts for a user across all their publications. Paginated with `offset
       "word_count": 15
     }
   ],
-  "next_offset": 10
+  "nextCursor": "base64-encoded-cursor-string"
 }
 ```
 
@@ -191,7 +191,7 @@ Key fields:
 
 ### GET `{platform}/reader/feed`
 
-Notes feed. Paginated with `page` and `page_size` (defaults). No auth required for reading.
+Notes feed. Cursor-based pagination (accepts `cursor`, responds with `nextCursor`). Legacy `page`/`page_size` params still accepted but ignored. No auth required for reading.
 
 ```json
 {
@@ -214,7 +214,8 @@ Notes feed. Paginated with `page` and `page_size` (defaults). No auth required f
       "attachments": []
     }
   ],
-  "next_page": 2
+  "nextCursor": "base64-encoded-cursor-string",
+  "originalCursorTimestamp": "2026-06-19T19:04:04.459Z"
 }
 ```
 
@@ -241,39 +242,21 @@ Read a single note/comment by ID. No auth required.
 
 ### GET `{platform}/feed/following`
 
-Posts from publications the user follows. Auth required.
+Returns a flat array of user IDs the authenticated user follows. Auth required. No pagination fields.
 
 ```json
-{
-  "feed": [
-    {
-      "type": "post",
-      "post": {
-        "id": 9876543,
-        "title": "...",
-        "slug": "...",
-        "publication_id": 12345,
-        "publication": { "id": 12345, "name": "...", "subdomain": "..." },
-        "audience": "everyone",
-        "published_at": "2025-12-18T10:00:00.000Z",
-        "reactions": { "❤": 0 },
-        "comment_count": 0
-      }
-    },
-    { "type": "note", "comment": { ... } }
-  ],
-  "has_more_pages": false,
-  "last_sorting_id": "..."
-}
+[250852026, 92320804, 369471867, 310483991]
 ```
 
 ### GET `{pub}/notes`
 
-Notes feed for a specific publication. Auth required.
+Notes feed for a specific publication. Cursor-based pagination (`?cursor=`). Auth required.
 
 ```json
 {
-  "comments": [ ...same format as reader/feed... ]
+  "comments": [ ...same format as reader/feed... ],
+  "nextCursor": null,
+  "originalCursorTimestamp": "2026-06-19T19:04:07.038Z"
 }
 ```
 
@@ -285,11 +268,11 @@ All draft endpoints are **publication-scoped**.
 
 ### GET `{pub}/drafts`
 
-List all drafts and published posts. Paginated. `offset` and `limit` query params.
+List all drafts and published posts. Supports both `offset`/`limit` and `cursor`/`limit` pagination. Returns `hasMore` (boolean) and `nextCursor` (numeric string — the next offset).
 
 ```json
 {
-  "drafts": [
+  "posts": [
     {
       "id": 5555555,
       "title": "Hello World",
@@ -304,7 +287,8 @@ List all drafts and published posts. Paginated. `offset` and `limit` query param
       }
     }
   ],
-  "next_offset": 10
+  "nextCursor": "1",
+  "hasMore": true
 }
 ```
 
@@ -704,3 +688,49 @@ For attaching images to notes (renders as embedded image cards within the note):
 ### Why
 
 Substack's analytics dashboard (accessible at `substack.com/dashboard` in the browser) likely uses internal/admin-only endpoints not exposed through the public API used by these clients. The three cloned repos (TS library, Python gateway, Obsidian plugin) handle content creation/reading — not analytics.
+
+---
+
+## Pagination Patterns
+
+### Cursor-based (most feed endpoints)
+
+Uses opaque `?cursor=` query param (base64-encoded). Invalid cursor values return **400**. Response includes `nextCursor` (cursor for next page) and `originalCursorTimestamp`.
+
+| Endpoint | Scope | Response pagination fields |
+|----------|-------|---------------------------|
+| `GET /reader/feed` | Platform | `nextCursor`, `originalCursorTimestamp` |
+| `GET /reader/feed/profile/{id}` | Platform | `nextCursor`, `originalCursorTimestamp` |
+| `GET /profile/posts?profile_user_id={id}` | Platform | `nextCursor` |
+| `GET {pub}/notes` | Publication | `nextCursor`, `originalCursorTimestamp` |
+| `GET {pub}/reader/feed/profile/{id}?types=note` | Publication | `nextCursor`, `originalCursorTimestamp` |
+
+### Offset-based (legacy, being deprecated)
+
+Uses `?offset=` and `?limit=` params. Response includes `hasMore` (bool) and `nextCursor` (numeric string = next offset value).
+
+| Endpoint | Scope | Notes |
+|----------|-------|-------|
+| `GET {pub}/drafts` | Publication | Also accepts `?cursor=` (alias for offset). Response: `nextCursor` (numeric), `hasMore`. |
+
+### No pagination
+
+| Endpoint | Scope | Reason |
+|----------|-------|--------|
+| `GET /feed/following` | Platform | Returns a flat array of user IDs (all followed users at once) |
+| `GET /reader/comment/{id}` | Platform | Single resource |
+| `GET /posts/by-id/{id}` | Platform | Single resource |
+| `GET /user/{handle}/public_profile` | Platform | Single resource |
+| `GET /user/profile/self` | Platform | Single resource |
+| `GET /user-settings` | Platform | Single resource (flat key-value store) |
+| `GET {pub}/publication` | Publication | Single resource |
+| `GET {pub}/publication/sections` | Publication | Small fixed list |
+| `GET {pub}/publication/settings` | Publication | Single resource |
+| `GET {pub}/drafts/{id}` | Publication | Single resource |
+| `GET {pub}/post/{id}/comments` | Publication | All comments returned at once (no pagination) |
+
+### Migration history
+
+- **`profile/posts`**: Previously accepted `offset`/`limit`, now **rejects `offset`** (400). Must use `cursor`/`limit`.
+- **`reader/feed`**: Previously used `page`/`page_size`, now cursor-based. Legacy params still accepted but ignored.
+- **`pub/drafts`**: Still accepts both `offset` and `cursor` — `cursor` is simply the numeric offset as a string.

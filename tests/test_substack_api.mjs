@@ -178,10 +178,11 @@ await test(9, "GET {pub}/publication/settings — settings", async () => {
 // FEED / CONTENT
 // ─────────────────────────────────────────────────────────────────────────
 
-await test(10, "GET /profile/posts — published posts shape", async () => {
+await test(10, "GET /profile/posts — published posts shape (cursor pagination)", async () => {
   const r = await api(P, "GET", `profile/posts?profile_user_id=${ownId}&limit=5`);
   assertOk(r, "profile/posts");
   assertArr(r.json, "posts");
+  assert(r.json.nextCursor === null || typeof r.json.nextCursor === "string", `expected nextCursor null|string, got ${typeof r.json.nextCursor}`);
   if (r.json.posts.length > 0) {
     const p = r.json.posts[0];
     assertField(p, "id", "number");
@@ -201,11 +202,12 @@ await test(11, "GET /posts/by-id/{id} — full post shape", async () => {
   assertField(post, "publication_id", "number");
 });
 
-await test(12, "GET /reader/feed — notes feed shape", async () => {
+await test(12, "GET /reader/feed — notes feed shape (cursor pagination)", async () => {
   const r = await api(P, "GET", "reader/feed?page=1&page_size=3");
   assertOk(r, "reader/feed");
   const items = r.json.items || r.json.comments || [];
   assert(Array.isArray(items), "expected items/comments array");
+  assert(r.json.nextCursor === null || typeof r.json.nextCursor === "string", `expected nextCursor null|string, got ${typeof r.json.nextCursor}`);
   if (items.length > 0) {
     const item = items[0].comment || items[0];
     assertField(item, "id", "number");
@@ -228,17 +230,20 @@ await test(13, "GET /reader/comment/{id} — single note shape", async () => {
   }
 });
 
-await test(14, "GET /feed/following — following feed", async () => {
+await test(14, "GET /feed/following — following (flat array of user IDs)", async () => {
   const r = await api(P, "GET", "feed/following");
   assertOk(r, "feed/following");
-  assert(Array.isArray(r.json), "expected direct array");
+  assert(Array.isArray(r.json), `expected array, got ${typeof r.json}`);
+  if (r.json.length > 0) assert(typeof r.json[0] === "number", `expected number IDs, got ${typeof r.json[0]}`);
 });
 
-await test(15, "GET {pub}/notes — publication notes feed", async () => {
+await test(15, "GET {pub}/notes — publication notes feed (cursor pagination)", async () => {
   const r = await api(B, "GET", "notes");
   assertOk(r, "pub/notes");
   const notes = r.json?.comments || r.json?.notes || [];
   assert(Array.isArray(notes), "expected array of notes");
+  // nextCursor may be null (no more pages) or a string
+  assert(r.json.nextCursor === null || typeof r.json.nextCursor === "string", `expected nextCursor null|string, got ${typeof r.json.nextCursor}`);
 });
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -260,10 +265,12 @@ await test(16, "POST {pub}/drafts — create draft", async () => {
   createdDrafts.push(draftId);
 });
 
-await test(17, "GET {pub}/drafts — list drafts", async () => {
+await test(17, "GET {pub}/drafts — list drafts (offset/cursor hybrid)", async () => {
   const r = await api(B, "GET", "drafts");
   assertOk(r, "drafts/list");
   assertArr(r.json, "posts");
+  assertField(r.json, "hasMore", "boolean");
+  assert(typeof r.json.nextCursor === "string", `expected nextCursor string, got ${typeof r.json.nextCursor}`);
 });
 
 await test(18, "GET {pub}/drafts/{id} — get single draft", async () => {
@@ -475,18 +482,20 @@ await test(34, "POST /restack/{postId} — cross-post endpoint", async () => {
   assert(typeof r.status === "number", "no response");
 });
 
-await test(35, "GET /reader/feed/profile/{id} — profile feed", async () => {
+await test(35, "GET /reader/feed/profile/{id} — profile feed (cursor pagination)", async () => {
   const r = await api(P, "GET", `reader/feed/profile/${ownId}`);
   assertOk(r, "profile feed");
   const items = r.json.items || [];
   assert(Array.isArray(items), "expected items array");
+  assert(r.json.nextCursor === null || typeof r.json.nextCursor === "string", `expected nextCursor null|string, got ${typeof r.json.nextCursor}`);
 });
 
-await test(36, "GET {pub}/reader/feed/profile/{id}?types=note — profile notes", async () => {
+await test(36, "GET {pub}/reader/feed/profile/{id}?types=note — profile notes (cursor pagination)", async () => {
   const r = await api(B, "GET", `reader/feed/profile/${ownId}?types=note`);
   assertOk(r, "profile notes");
   const items = r.json.items || [];
   assert(Array.isArray(items), "expected items array");
+  assert(r.json.nextCursor === null || typeof r.json.nextCursor === "string", `expected nextCursor null|string, got ${typeof r.json.nextCursor}`);
 });
 
 await test(37, "DELETE /post/{id}/reaction — explicit unlike", async () => {
