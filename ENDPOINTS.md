@@ -21,7 +21,8 @@
 | GET | `/profile/posts?profile_user_id={id}&limit={n}` | ❌ No | cursor | Published posts for a user. ⚠ `offset` rejected (400). |
 | GET | `/posts/by-id/{id}` | ❌ No | — | Single published post with full `body_html` |
 | GET | `/reader/feed` | ❌ No | cursor | Global notes feed (`nextCursor`, `originalCursorTimestamp`) |
-| GET | `/reader/feed/profile/{profileId}` | ❌ No | cursor | Feed items for a specific user profile |
+| GET | `/reader/feed?user_id={id}` | ❌ No | cursor | Global feed filtered to a specific user |
+| GET | `/reader/feed/profile/{profileId}` | ❌ No | cursor | **All content** by a user across all publications. `?types=note\|post\|all\|comment` to filter. |
 | GET | `/reader/comment/{id}` | ❌ No | — | Read a single note/comment by ID |
 | GET | `/feed/following` | ✅ Yes | — | Returns flat array of followed user IDs |
 | GET | `/handle/options` | ✅ Yes | — | Available handles/slugs |

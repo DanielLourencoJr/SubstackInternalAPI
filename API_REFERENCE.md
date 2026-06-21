@@ -109,31 +109,113 @@ User settings as a flat key-value store.
 
 ### GET `{platform}/reader/feed/profile/{profileId}`
 
-Feed items for a specific user profile. Returns posts, notes, and other content by that user. No auth required (platform scope).
+Feed items for a specific user **across all publications**. This is the main way to get everything a user has done — posts, notes, and comments on posts.
 
-Query params: `cursor` (for cursor-based pagination)
+**Auth**: No auth required for reading. Returns all public content by that user.
+
+**Query params**:
+| Param | Description |
+|-------|-------------|
+| `cursor` | Cursor-based pagination (base64) |
+| `types` | Filter by content type: `note`, `post`, `comment`, `all`, or comma-separated like `post,note` |
+
+Examples:
+- `?types=note` — notes/comments only (works at platform scope)
+- `?types=post` — posts only
+- `?types=all` — everything
 
 ```json
 {
   "items": [
-    { "type": "post", ... },
-    { "type": "comment", ... }
+    {
+      "type": "post",
+      "id": null,
+      "publication_id": null,
+      "publication": { "id": 7073311, "name": "..." },
+      "entity_key": "...",
+      "post": {
+        "id": 201869128,
+        "title": "API Test — Updated Title",
+        "publication_id": 7073311,
+        "type": "newsletter",
+        "audience": "everyone",
+        "slug": "api-test",
+        "post_date": "2025-12-17T22:29:10.614Z",
+        ...
+      },
+      "comment": null,
+      "context": { "type": "post", "timestamp": "...", "users": [...] }
+    },
+    {
+      "type": "comment",
+      "id": null,
+      "publication_id": null,
+      "publication": { "id": 7073311, "name": "..." },
+      "entity_key": "...",
+      "post": { ... parent post if reply ... },
+      "comment": {
+        "id": 279209572,
+        "body": "Test note for comment exploration",
+        "post_id": null,
+        "publication_id": null,
+        "user_id": 250852026,
+        "type": "comment",
+        "date": "2026-01-15T12:00:00.000Z",
+        "ancestor_path": "",
+        "reply_minimum_role": "everyone",
+        "reaction_count": 0,
+        "restacks": 0,
+        "children_count": 0,
+        "attachments": []
+      },
+      "context": { "type": "comment", "timestamp": "...", "users": [...] }
+    }
   ],
   "originalCursorTimestamp": "2026-06-19T17:46:56.163Z",
-  "nextCursor": "..."
+  "nextCursor": "base64-encoded-cursor"
 }
 ```
 
-### GET `{pub}/reader/feed/profile/{profileId}?types=note`
+**Identifying content types**:
 
-Notes for a specific user profile within a publication. Publication scope, auth required. Cursor-paginated.
+| Type | How to identify | Description |
+|------|----------------|------------|
+| Post | `item.type === "post"` + `item.post` is non-null | Newsletter post |
+| Note (standalone) | `item.type === "comment"` + `item.comment.post_id === null` | Platform note, not tied to a specific post |
+| Post reply | `item.type === "comment"` + `item.comment.post_id` is a number | Comment on a specific post |
+| Threaded reply | `item.type === "comment"` + `item.comment.ancestor_path` non-empty | Reply to another comment |
+
+**Getting the parent post**: If `item.comment.post_id` is non-null, fetch `GET /posts/by-id/{comment.post_id}` for the parent post's title and details. The `item.post` object at the item level may also contain the parent post's summary data.
+
+**Cross-publication**: Since this endpoint is platform-scoped, items come from **all publications** the user participates in. Each item has a `publication` object with the owning publication's `id` and `name`.
+
+### GET `{platform}/reader/feed/?user_id={profileId}`
+
+Filter the global notes feed to a specific user's notes. Auth optional. Same cursor pagination as the global feed.
 
 ```json
 {
-  "items": [...],
+  "items": [ ... same structure as reader/feed ... ],
+  "nextCursor": "...",
+  "originalCursorTimestamp": "...",
+  "trackingParameters": { ... }
+}
+```
+
+Note: this returns fewer items than the profile feed endpoint — it only includes items that appear in the global "for you" feed, not all content by that user.
+
+### GET `{pub}/reader/feed/profile/{profileId}?types=note`
+
+Notes for a specific user profile **within a single publication**. Publication scope, auth required. Cursor-paginated.
+
+```json
+{
+  "items": [ ... same item structure as platform profile feed ... ],
   "nextCursor": "..."
 }
 ```
+
+This is scoped to one publication. For cross-publication results, use the platform-scoped endpoint without specifying a publication.
 
 ### GET `{platform}/profile/posts?profile_user_id={id}&limit={n}`
 

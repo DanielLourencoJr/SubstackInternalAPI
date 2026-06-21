@@ -482,12 +482,41 @@ await test(34, "POST /restack/{postId} — cross-post endpoint", async () => {
   assert(typeof r.status === "number", "no response");
 });
 
-await test(35, "GET /reader/feed/profile/{id} — profile feed (cursor pagination)", async () => {
+await test(35, "GET /reader/feed/profile/{id} — profile feed (all publications)", async () => {
   const r = await api(P, "GET", `reader/feed/profile/${ownId}`);
   assertOk(r, "profile feed");
   const items = r.json.items || [];
   assert(Array.isArray(items), "expected items array");
   assert(r.json.nextCursor === null || typeof r.json.nextCursor === "string", `expected nextCursor null|string, got ${typeof r.json.nextCursor}`);
+  if (items.length > 0) {
+    const item = items[0];
+    assert(["post", "comment"].includes(item.type), `expected type post|comment, got ${item.type}`);
+    if (item.type === "comment" && item.comment) {
+      assert(typeof item.comment.id === "number", "expected comment.id number");
+      // post_id: null = note, number = reply to a post
+      assert(item.comment.post_id === null || typeof item.comment.post_id === "number", "expected comment.post_id null|number");
+    }
+  }
+});
+
+await test(42, "GET /reader/feed/profile/{id}?types=note — filter notes only", async () => {
+  const r = await api(P, "GET", `reader/feed/profile/${ownId}?types=note`);
+  assertOk(r, "profile feed (types=note)");
+  const items = r.json.items || [];
+  assert(Array.isArray(items), "expected items array");
+  for (const item of items) {
+    assert(item.type === "comment", `expected type comment, got ${item.type}`);
+  }
+});
+
+await test(43, "GET /reader/feed/profile/{id}?types=post — filter posts only", async () => {
+  const r = await api(P, "GET", `reader/feed/profile/${ownId}?types=post`);
+  assertOk(r, "profile feed (types=post)");
+  const items = r.json.items || [];
+  assert(Array.isArray(items), "expected items array");
+  for (const item of items) {
+    assert(item.type === "post", `expected type post, got ${item.type}`);
+  }
 });
 
 await test(36, "GET {pub}/reader/feed/profile/{id}?types=note — profile notes (cursor pagination)", async () => {
