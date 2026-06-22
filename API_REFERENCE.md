@@ -189,21 +189,6 @@ Examples:
 
 **Cross-publication**: Since this endpoint is platform-scoped, items come from **all publications** the user participates in. Each item has a `publication` object with the owning publication's `id` and `name`.
 
-### GET `{platform}/reader/feed/?user_id={profileId}`
-
-Filter the global notes feed to a specific user's notes. Auth optional. Same cursor pagination as the global feed.
-
-```json
-{
-  "items": [ ... same structure as reader/feed ... ],
-  "nextCursor": "...",
-  "originalCursorTimestamp": "...",
-  "trackingParameters": { ... }
-}
-```
-
-Note: this returns fewer items than the profile feed endpoint — it only includes items that appear in the global "for you" feed, not all content by that user.
-
 ### GET `{pub}/reader/feed/profile/{profileId}?types=note`
 
 Notes for a specific user profile **within a single publication**. Publication scope, auth required. Cursor-paginated.
