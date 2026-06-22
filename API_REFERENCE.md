@@ -189,6 +189,18 @@ Examples:
 
 **Cross-publication**: Since this endpoint is platform-scoped, items come from **all publications** the user participates in. Each item has a `publication` object with the owning publication's `id` and `name`.
 
+### GET `{platform}/reader/feed?user_id={profileId}`
+
+Same global feed as `GET /reader/feed`. The `user_id` query parameter is accepted but **has no effect** on the response — the feed returned is the same generic global feed regardless of the value.
+
+```json
+{
+  "items": [ ... same structure as reader/feed ... ],
+  "nextCursor": "...",
+  "originalCursorTimestamp": "..."
+}
+```
+
 ### GET `{pub}/reader/feed/profile/{profileId}?types=note`
 
 Notes for a specific user profile **within a single publication**. Publication scope, auth required. Cursor-paginated.
