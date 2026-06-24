@@ -28,7 +28,8 @@
 | GET | `/handle/options` | ✅ Yes | — | Available handles/slugs |
 | GET | `/user/profile/self` | ✅ Yes | — | Own profile, publication list, user ID |
 | GET | `/user-settings` | ✅ Yes | — | User settings (key-value store) |
-| POST | `/comment/feed/` | ✅ Yes | — | Create a note (ProseMirror JSON body) |
+| POST | `/comment/feed/` | ✅ Yes | — | Create a note (ProseMirror JSON body). Add `parent_id` (number) for a threaded reply to another note. |
+| GET | `/reader/comment/{id}/replies` | ❌ No | — | List threaded replies to a note (returns `commentBranches`) |
 | DELETE | `/comment/{id}` | ✅ Yes | — | Delete a note (platform scope) |
 | POST | `/comment/attachment/` | ✅ Yes | — | Resolve URL to attachment UUID |
 | POST | `/restack/{postId}` | ✅ Yes | — | Cross-post a post to another publication |

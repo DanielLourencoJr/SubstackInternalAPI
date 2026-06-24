@@ -333,6 +333,44 @@ await test(23, "DELETE /comment/{id} — delete note", async () => {
   noteId = null;
 });
 
+await test(44, "POST /comment/feed/ with parent_id — threaded note reply", async () => {
+  const parent = await api(P, "POST", "comment/feed/", {
+    bodyJson: { type: "doc", attrs: { schemaVersion: "v1" }, content: [{ type: "paragraph", content: [{ type: "text", text: "Parent for reply test." }] }] },
+    tabId: "for-you", surface: "feed", replyMinimumRole: "everyone",
+  });
+  assertOk(parent, "parent note");
+  const parentId = parent.json?.id;
+  assert(typeof parentId === "number", "no parent id");
+  createdNotes.push(parentId);
+
+  const reply = await api(P, "POST", "comment/feed/", {
+    bodyJson: { type: "doc", attrs: { schemaVersion: "v1" }, content: [{ type: "paragraph", content: [{ type: "text", text: "Threaded reply test." }] }] },
+    tabId: "for-you", surface: "feed", replyMinimumRole: "everyone",
+    parent_id: parentId,
+  });
+  assertOk(reply, "reply note");
+  const replyId = reply.json?.id;
+  assert(typeof replyId === "number", "no reply id");
+  assert(reply.json?.ancestor_path === String(parentId), `expected ancestor_path="${parentId}", got "${reply.json?.ancestor_path}"`);
+  createdNotes.push(replyId);
+});
+
+await test(45, "GET /reader/comment/{id}/replies — list note replies", async () => {
+  const feed = await api(P, "GET", "reader/feed?limit=5");
+  const items = feed.json?.items || [];
+  const noteWithChildren = items.find(i => i.type === "comment" && i.comment?.children_count > 0)?.comment;
+  if (!noteWithChildren) throw Error("no note with replies in reader feed");
+  const r = await api(P, "GET", `reader/comment/${noteWithChildren.id}/replies`);
+  assertOk(r, "note/replies");
+  assert(Array.isArray(r.json?.commentBranches), "expected commentBranches array");
+  assert(typeof r.json?.moreBranches === "number", "expected moreBranches number");
+  if (r.json.commentBranches.length > 0) {
+    const branch = r.json.commentBranches[0];
+    assert(branch.comment?.id, "expected branch.comment.id");
+    assert(branch.comment?.user_id, "expected branch.comment.user_id");
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 // COMMENTS ON POSTS
 // ─────────────────────────────────────────────────────────────────────────

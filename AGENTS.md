@@ -14,7 +14,7 @@ Reverse-engineered documentation of Substack's internal HTTP API. No code contri
 | `ENDPOINTS.md` | Quick-reference table (24 endpoints) |
 | `CONTENT_FORMATS.md` | Tiptap (drafts) vs ProseMirror (notes) |
 | `LIMITS.md` | Rate limits (~60 req/min), size limits (~976 KB draft body) |
-| `tests/test_substack_api.mjs` | **Canary** — 43 tests, all endpoints covered |
+| `tests/test_substack_api.mjs` | **Canary** — 45 tests, all endpoints covered |
 | `substack-api-repo/` | Cloned TS lib (reference only, gitignored) |
 | `substack-gateway-oss/` | Cloned Python gateway (reference only, gitignored) |
 | `obsidian-content-publisher/` | Cloned plugin (reference only, gitignored) |
@@ -49,6 +49,8 @@ The session cookie (`substack.sid`) in `tests/test_substack_api.mjs` **expires**
 - **Attachment UUIDs**: single-use. Reuse returns 400.
 - **Content format**: Tiptap (`strong`, `em`, `image2`) for drafts; ProseMirror (`bold`, `italic`) for notes.
 - **Delete scoping**: Notes delete via platform scope; post comments delete via publication scope.
+- **Note replies**: Create via `POST /comment/feed/` with `parent_id: <noteId>` (number). `ancestorPath` alone ignored. Profile feed excludes replies. Read via `GET /reader/comment/{id}/replies` (no auth). No endpoint to enumerate ALL of a user's replies.
+- **Reply `ancestor_path` format**: For notes, it's the parent note's ID as a string (e.g., `"279089880"`). For post comments, it's a slash-separated path like `/post/{postId}/comment/{parentCommentId}`.
 
 ## Discovery testing
 

@@ -189,6 +189,8 @@ Examples:
 
 **Cross-publication**: Since this endpoint is platform-scoped, items come from **all publications** the user participates in. Each item has a `publication` object with the owning publication's `id` and `name`.
 
+**Note replies excluded**: This endpoint only shows **top-level** notes (standalone notes created by the user). Threaded replies to other people's notes (where `ancestor_path` is non-empty) do NOT appear here. To get a user's replies, you must hit each parent note's replies endpoint individually.
+
 ### GET `{platform}/reader/feed?user_id={profileId}`
 
 Same endpoint as above — the `user_id` param is accepted but **ignored**. Returns the same "For You" feed regardless of the value. Documented because the endpoint exists and responds 200, but the param has no observable effect.
@@ -402,6 +404,43 @@ Read a single note/comment by ID. No auth required.
 }
 ```
 
+### GET `{platform}/reader/comment/{id}/replies`
+
+List threaded replies to a specific note. No auth required.
+
+```json
+{
+  "commentBranches": [
+    {
+      "comment": {
+        "id": 279094489,
+        "body": "Auraticosíssimo.",
+        "body_json": { "type": "doc", "attrs": { "schemaVersion": "v1" }, "content": [...] },
+        "publication_id": null,
+        "post_id": null,
+        "user_id": 464232438,
+        "ancestor_path": "279089880",
+        "type": "feed",
+        "date": "2026-06-19T13:59:58.257Z",
+        "reaction_count": 3,
+        "reactions": { "❤": 3 },
+        "children_count": 0,
+        "attachments": [],
+        "userStatus": { ... },
+        "user_primary_publication": { ... }
+      }
+    }
+  ],
+  "moreBranches": 0,
+  "nextCursor": null,
+  "rootComment": { ... }
+}
+```
+
+**Identifying replies**: Each branch has a `comment` object. The `ancestor_path` field contains the parent note's ID (as a string). The `user_id` field identifies the reply author.
+
+**Limitation**: There is no endpoint to enumerate ALL replies by a user. You must know the parent note ID to query its replies.
+
 ### GET `{platform}/feed/following`
 
 Returns a flat array of user IDs the authenticated user follows. Auth required. No pagination fields.
@@ -567,6 +606,7 @@ Fields:
 | `surface` | string | Yes | `"feed"` |
 | `tabId` | string | Yes | `"for-you"` |
 | `replyMinimumRole` | string | Yes | `"everyone"` |
+| `parent_id` | int | No | Parent note's ID (as a number) to create a **threaded reply**. Omit for top-level notes. |
 | `attachmentIds` | string[] | No | Array of attachment UUIDs (from `/comment/attachment/`). **Single-use** — each UUID can only be used in one note. |
 | `audience` | string | No | `"everyone"` (default) or `"only_paid"` |
 | `publicationId` | int | No | Post to a specific publication's notes feed |
@@ -574,6 +614,8 @@ Fields:
 *\* `bodyJson` is technically optional — you can create a note with only image attachments and no body text. However, you must include at least `bodyJson`, `attachmentIds`, or both.*
 
 **Important**: Attachment UUIDs are **single-use**. Once an attachment is used in a note, it cannot be reused in another note.
+
+**Threaded replies**: To reply to an existing note, include `parent_id: <parentNoteId>` (as a number). The response's `ancestor_path` will be set to the parent's ID. The reply will appear in `GET /reader/comment/{parentId}/replies`. Note that `ancestorPath` (camelCase) alone is ignored — `parent_id` is the active field.
 
 See [CONTENT_FORMATS.md](CONTENT_FORMATS.md) for the ProseMirror body schema.
 

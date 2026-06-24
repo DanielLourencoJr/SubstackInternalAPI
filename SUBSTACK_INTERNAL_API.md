@@ -9,7 +9,7 @@
 | File | Contents |
 |------|----------|
 | [`AUTH.md`](AUTH.md) | Authentication, base URLs, auth matrix, session cookie |
-| [`ENDPOINTS.md`](ENDPOINTS.md) | Quick-reference table of all 24 endpoints with auth column |
+| [`ENDPOINTS.md`](ENDPOINTS.md) | Quick-reference table of all 25 endpoints with auth column |
 | [`API_REFERENCE.md`](API_REFERENCE.md) | Detailed endpoint documentation with JSON examples |
 | [`CONTENT_FORMATS.md`](CONTENT_FORMATS.md) | Tiptap (drafts) vs ProseMirror (notes) JSON document formats |
 | [`LIMITS.md`](LIMITS.md) | Rate limits (~60 req/min global) and size limits (~976 KB draft body) |
@@ -62,3 +62,4 @@ await fetch('https://substack.com/api/v1/post/{id}/reaction', {
 - **Notes** cannot embed images inline (no `image2` in body JSON), but **images can be attached** as cards via `POST /comment/attachment/` with `type: "image"` — see [API_REFERENCE.md#image-attachment-workflow](API_REFERENCE.md).
 - **Reactions**: Only `❤` is supported (no `🔥`, `👍`, etc.).
 - **Delete scoping**: Notes delete via platform scope; post comments delete via publication scope.
+- **Note replies**: Create via `POST /comment/feed/` with `parent_id: <noteId>` (number). Read via `GET /reader/comment/{id}/replies` (no auth). Profile feed excludes replies — they don't appear in `reader/feed/profile/{id}`. No endpoint to enumerate ALL of a user's replies.
