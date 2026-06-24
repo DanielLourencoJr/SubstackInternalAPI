@@ -20,8 +20,8 @@
 | GET | `/user/{handle}/public_profile` | ❌ No | — | Public profile by handle |
 | GET | `/profile/posts?profile_user_id={id}&limit={n}` | ❌ No | cursor | Published posts for a user. ⚠ `offset` rejected (400). |
 | GET | `/posts/by-id/{id}` | ❌ No | — | Single published post with full `body_html` |
-| GET | `/reader/feed` | ❌ No | cursor | Global notes feed (`nextCursor`, `originalCursorTimestamp`) |
-| GET | `/reader/feed?user_id={id}` | ❌ No | cursor | Same global feed — `user_id` parameter is accepted but ignored |
+| GET | `/reader/feed` | ❌ No | cursor | "For You" home feed — ML-ranked mix of posts, notes, suggestions. Auth changes the entire item set (personalized). |
+| GET | `/reader/feed?user_id={id}` | ❌ No | cursor | Same as above — `user_id` param is accepted but has no effect |
 | GET | `/reader/feed/profile/{profileId}` | ❌ No | cursor | **All content** by a user across all publications. `?types=note\|post\|all\|comment` to filter. |
 | GET | `/reader/comment/{id}` | ❌ No | — | Read a single note/comment by ID |
 | GET | `/feed/following` | ✅ Yes | — | Returns flat array of followed user IDs |

@@ -202,15 +202,15 @@ await test(11, "GET /posts/by-id/{id} — full post shape", async () => {
   assertField(post, "publication_id", "number");
 });
 
-await test(12, "GET /reader/feed — notes feed shape (cursor pagination)", async () => {
+await test(12, "GET /reader/feed — For You home feed shape", async () => {
   const r = await api(P, "GET", "reader/feed?page=1&page_size=3");
   assertOk(r, "reader/feed");
-  const items = r.json.items || r.json.comments || [];
-  assert(Array.isArray(items), "expected items/comments array");
+  const items = r.json.items || [];
+  assert(Array.isArray(items), "expected items array");
   assert(r.json.nextCursor === null || typeof r.json.nextCursor === "string", `expected nextCursor null|string, got ${typeof r.json.nextCursor}`);
+  assert(r.json.trackingParameters?.tab_id === "for-you", "expected trackingParameters.tab_id = for-you");
   if (items.length > 0) {
-    const item = items[0].comment || items[0];
-    assertField(item, "id", "number");
+    assert(["post", "comment", "userSuggestions"].includes(items[0].type), "expected known item type");
   }
 });
 

@@ -82,7 +82,7 @@ Used in:
 
 Used in:
 - `POST /{platform}/comment/feed/` (`bodyJson`)
-- `GET /{platform}/reader/feed` (`body_json`)
+- `GET /{platform}/reader/feed` (`items[].comment.body_json`)
 - `GET /{platform}/reader/comment/{id}` (`body_json`)
 
 ### Text Marks

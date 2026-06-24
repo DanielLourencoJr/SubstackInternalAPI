@@ -191,15 +191,7 @@ Examples:
 
 ### GET `{platform}/reader/feed?user_id={profileId}`
 
-Same global feed as `GET /reader/feed`. The `user_id` query parameter is accepted but **has no effect** on the response — the feed returned is the same generic global feed regardless of the value.
-
-```json
-{
-  "items": [ ... same structure as reader/feed ... ],
-  "nextCursor": "...",
-  "originalCursorTimestamp": "..."
-}
-```
+Same endpoint as above — the `user_id` param is accepted but **ignored**. Returns the same "For You" feed regardless of the value. Documented because the endpoint exists and responds 200, but the param has no observable effect.
 
 ### GET `{pub}/reader/feed/profile/{profileId}?types=note`
 
@@ -270,33 +262,124 @@ Key fields:
 
 ### GET `{platform}/reader/feed`
 
-Notes feed. Cursor-based pagination (accepts `cursor`, responds with `nextCursor`). Legacy `page`/`page_size` params still accepted but ignored. No auth required for reading.
+The **"For You" home feed** — the main algorithmic feed shown on `substack.com`. Returns a mix of posts, notes, and user suggestions ranked by ML model. Items are in `items` (not `comments`).
+
+**Auth**: Optional but dramatically different results.
+- **Without cookie**: Returns ~6 generic items (no personalization).
+- **With cookie**: Returns ~7 items personalized to your session — follows, subscriptions, and algorithmic recommendations. The two feeds share **zero items** — the entire set changes.
+
+**Pagination**: Cursor-based (`?cursor=`, response has `nextCursor`). Legacy `page`/`page_size` accepted but ignored.
+
+**Query params**:
+| Param | Effect |
+|-------|--------|
+| `cursor` | Cursor-based pagination |
+| `user_id` | Accepted but **ignored** — has no effect on the response |
 
 ```json
 {
-  "comments": [
+  "items": [
     {
-      "id": 4444444,
-      "body_json": {
-        "type": "doc",
-        "attrs": { "schemaVersion": "v1" },
-        "content": [
-          { "type": "paragraph", "content": [{ "type": "text", "text": "Hello Substack" }] }
-        ]
+      "type": "comment",
+      "entity_key": "c-280783015",
+      "comment": {
+        "id": 280783015,
+        "body": "Não ",
+        "body_json": { "type": "doc", ... },
+        "user_id": 369865656,
+        "handle": "sohtabb748748",
+        "name": "SOHTAB",
+        "post_id": null,
+        "publication_id": null,
+        "date": "2026-06-22T16:17:24.873Z",
+        "reaction_count": 3,
+        "reactions": { "❤": 3 },
+        "ancestor_path": "",
+        "children_count": 0,
+        "attachments": []
       },
-      "body_html": "<p>Hello Substack</p>",
-      "author": { "id": 1234567, "name": "Daniel Lourenco", "handle": "danielloureno" },
-      "publication_id": 12345,
-      "created_at": "2025-12-18T12:00:00.000Z",
-      "likes": 2,
-      "restacked": false,
-      "attachments": []
+      "publication": null,
+      "post": null,
+      "context": {
+        "type": "comment_like",
+        "typeBucket": "notes",
+        "source": "model",
+        "model_score": 11.68,
+        "page": 0,
+        "page_rank": 0,
+        "users": [ { "id": 496005976, "handle": "empirista", "name": "Estrela" } ]
+      }
+    },
+    {
+      "type": "post",
+      "entity_key": "p-202738130",
+      "post": {
+        "id": 202738130,
+        "title": "Por uma eugenia brasileira",
+        "publication_id": 8836096,
+        "type": "newsletter",
+        "audience": "everyone"
+      },
+      "publication": { "id": 8836096, "name": "Arché Brasilis" },
+      "comment": null,
+      "context": {
+        "type": "post",
+        "typeBucket": "posts",
+        "source": "model",
+        "model_score": 3.24,
+        "page": 0,
+        "page_rank": 3
+      }
+    },
+    {
+      "type": "userSuggestions"
     }
   ],
   "nextCursor": "base64-encoded-cursor-string",
-  "originalCursorTimestamp": "2026-06-19T19:04:04.459Z"
+  "originalCursorTimestamp": "2026-06-19T19:04:04.459Z",
+  "trackingParameters": {
+    "feed_session_id": "uuid",
+    "tab_id": "for-you",
+    "top_note_impression_id": "uuid",
+    "top_note_entity_key": "c-280635959",
+    "top_note_model_score": 1.64,
+    "top_note_source": "model",
+    "is_following": false,
+    "followed_user_count": 4,
+    "subscribed_publication_count": 0
+  }
 }
 ```
+
+**Item types**:
+
+| `type` | Count | Description |
+|--------|-------|-------------|
+| `comment` | ~5 | Notes by various users. Standalone (`post_id` is always `null`). Can be text, link shares, or "liked by someone you may know" entries. |
+| `post` | ~1 | Newsletter post from a publication |
+| `userSuggestions` | ~1 | Recommendation block suggesting accounts/pubs to follow |
+
+**Context metadata** (`item.context`):
+
+| Field | Description |
+|-------|-------------|
+| `type` | Reason shown: `"note"`, `"post"`, `"comment_like"` (liked by someone you might follow) |
+| `typeBucket` | `"notes"` or `"posts"` |
+| `source` | `"model"` (ML algorithm), `"db-note"`, etc. |
+| `model_score` | Ranking score (higher = more prominent) |
+| `page`, `page_rank` | Position tracking for A/B testing |
+| `users` | Relevant users (e.g., the liker on `comment_like` items) |
+
+**Tracking parameters** (`trackingParameters`):
+
+| Field | Description |
+|-------|-------------|
+| `feed_session_id` | Unique session identifier |
+| `tab_id` | Always `"for-you"` — confirms this is the For You tab |
+| `top_note_*` | Metadata about the highest-ranked item |
+| `is_following` | Whether the authenticated user follows the top item's author |
+| `followed_user_count` | How many users the authenticated user follows |
+| `subscribed_publication_count` | How many pubs the user subscribes to |
 
 ### GET `{platform}/reader/comment/{id}`
 
@@ -778,7 +861,7 @@ Uses opaque `?cursor=` query param (base64-encoded). Invalid cursor values retur
 
 | Endpoint | Scope | Response pagination fields |
 |----------|-------|---------------------------|
-| `GET /reader/feed` | Platform | `nextCursor`, `originalCursorTimestamp` |
+| `GET /reader/feed` | Platform | `nextCursor`, `originalCursorTimestamp`, `trackingParameters` |
 | `GET /reader/feed/profile/{id}` | Platform | `nextCursor`, `originalCursorTimestamp` |
 | `GET /profile/posts?profile_user_id={id}` | Platform | `nextCursor` |
 | `GET {pub}/notes` | Publication | `nextCursor`, `originalCursorTimestamp` |
